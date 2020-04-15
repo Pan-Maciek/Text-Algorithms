@@ -1,5 +1,5 @@
 define generate_file
-	@cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w $(1) | head -1
+	@cat /dev/urandom | tr -dc 'a-zA-Z' | fold -w $(1) | head -1
 endef
 
 test:
@@ -10,3 +10,5 @@ test:
 
 	python3 test.py
 
+clean:
+	rm -f *.txt
