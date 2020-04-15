@@ -90,27 +90,22 @@ def tofile(file, text, frequency=None, tree=None, codes=None):
     encoded.tofile(file)
 
 def fromfile(file):
-    metadata = array('H')
-    metadata.fromfile(file, 2)
-    alphabet_bytes_size, encoded_shape_excess = metadata
+    def fill(to, n=-1):
+        to.fromfile(file, n)
+        return to
+
+    alphabet_bytes_size, encoded_shape_excess = fill(array('H'), 2)
     excess = encoded_shape_excess & 0b111
     shape_bytes = encoded_shape_excess >> 3
 
-    alphabet_bytes = array('B')
-    alphabet_bytes.fromfile(file, alphabet_bytes_size)
-    alphabet = alphabet_bytes.tobytes().decode()
+    alphabet_it = iter(fill(array('B'), alphabet_bytes_size).tobytes().decode())
+    shape_it = iter(fill(bitarray(), shape_bytes))
 
-    shape = bitarray()
-    shape.fromfile(file, shape_bytes)
-
-    alphabet_it = iter(alphabet)
-    shape_it = iter(shape)
     def parse_tree():
         return Leaf(0, next(alphabet_it)) if next(shape_it) \
             else Node(0, parse_tree(), parse_tree())
+
     root = parse_tree()
-
-    encoded = bitarray()
-    encoded.fromfile(file)
-
-    return decode(encoded[:-excess] if excess != 8 else encoded, root)
+    encoded = fill(bitarray())
+    encoded = encoded[:-excess] if excess != 8 else encoded # trim excess bits
+    return decode(encoded, root)
