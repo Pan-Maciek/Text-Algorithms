@@ -4,6 +4,7 @@ from bitarray import bitarray
 from array import array
 from dataclasses import dataclass, field
 from typing import Union
+from math import ceil
 
 @dataclass
 class CmpNode:
@@ -62,29 +63,54 @@ def decode(bits, root):
     return out
 
 def tofile(file, text, frequency=None, tree=None, codes=None):
-    freq = frequency or Counter(text)
-    alphabet_bytes =  array('B', (''.join(freq.keys())).encode())
-    encoded = encode(text, freq, tree, codes)
-    array('H', [ len(alphabet_bytes), len(encoded) % 8 ]).tofile(file)
-    alphabet_bytes.tofile(file)
-    array('H', freq.values()).tofile(file)
+    tree = tree or huffman(frequency or text) 
 
+    # encoding tree shape (0 - branch; 1 - leaf)
+    alphabet, shape = '', bitarray() 
+    def encode_tree(root):
+        nonlocal alphabet, shape
+        if root.is_leaf:
+            alphabet += root.char
+            shape += '1'
+        else:
+            shape += '0'
+            encode_tree(root.low)
+            encode_tree(root.high)
+
+    encode_tree(tree)
+
+    alphabet_bytes =  array('B', alphabet.encode())
+    encoded = encode(text, frequency, tree, codes)
+    array('H', [ 
+        len(alphabet_bytes), 
+        (ceil(len(shape) / 8) << 3) | (8 - len(encoded) % 8) 
+    ]).tofile(file)
+    alphabet_bytes.tofile(file)
+    shape.tofile(file)
     encoded.tofile(file)
 
 def fromfile(file):
     metadata = array('H')
     metadata.fromfile(file, 2)
-    alphabet_bytes_size, encoded_excess = metadata
+    alphabet_bytes_size, encoded_shape_excess = metadata
+    excess = encoded_shape_excess & 0b111
+    shape_bytes = encoded_shape_excess >> 3
 
     alphabet_bytes = array('B')
     alphabet_bytes.fromfile(file, alphabet_bytes_size)
     alphabet = alphabet_bytes.tobytes().decode()
-    frequency = array('H')
-    frequency.fromfile(file, len(alphabet))
 
-    frequency = Counter(dict(zip(alphabet, frequency)))
+    shape = bitarray()
+    shape.fromfile(file, shape_bytes)
+
+    alphabet_it = iter(alphabet)
+    shape_it = iter(shape)
+    def parse_tree():
+        return Leaf(0, next(alphabet_it)) if next(shape_it) \
+            else Node(0, parse_tree(), parse_tree())
+    root = parse_tree()
+
     encoded = bitarray()
     encoded.fromfile(file)
-    encoded = encoded[:-encoded_excess] if encoded_excess else encoded
 
-    return decode(encoded, huffman(frequency))
+    return decode(encoded[:-excess] if excess != 8 else encoded, root)
