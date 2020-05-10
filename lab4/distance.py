@@ -1,11 +1,18 @@
 import numpy as np
 from dataclasses import dataclass
+from math import inf
 
 def delta(a, b):
     return 0 if a == b else 1
 
-def distance(a, b, dt=delta):
+def delta2(a, b):
+    return 0 if a == b else inf
+
+def distance(a, b, dt=delta, matrix=None):
     a_len, b_len = len(a), len(b)
+    if matrix is not None:
+        return matrix[a_len,b_len]
+
     if a_len > b_len:
         a, b = b, a
         a_len, b_len = b_len, a_len
@@ -66,15 +73,15 @@ def mk_transition_matrix(a, b, dt=delta):
 
     for x, y in np.ndindex((x-1, y-1)):
         m[x+1, y+1] = min(
-            m[x, y] + dt(a[x], b[y]), # update
+            m[x, y] + dt(a[x], b[y]), # substitute
             m[x+1, y] + 1, # insert
             m[x, y+1] + 1  # delete
         )
 
     return m
 
-def transition(a, b, dt=delta):
-    m = mk_transition_matrix(a, b, dt)
+def transition(a, b, dt=delta, matrix=None):
+    m = matrix if matrix is not None else mk_transition_matrix(a, b, dt)
     x, y = len(a), len(b)
 
     while (x, y) != (0, 0):

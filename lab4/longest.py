@@ -1,10 +1,8 @@
 import numpy as np
-import sys
-from math import floor
+from distance import distance, delta2
 
 def longest(a, b):
     x, y = len(a) + 1, len(b) + 1
-    X = len(a)
 
     m = np.zeros((x, y), dtype=int)
     for x, y in np.ndindex((x-1, y-1)):
@@ -23,3 +21,6 @@ def longest(a, b):
             out.append(a[x])
     out.reverse()
     return out
+
+def lcs1(a, b):
+    return (len(a) - len(b) - distance(a, b, delta2)) / 2

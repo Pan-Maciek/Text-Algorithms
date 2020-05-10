@@ -18,8 +18,9 @@ for a, b in data:
     tmp = a
 
     sys.stdout.write(f'{store}')
-    dist = distance(a, b)
-    for action in list(transition(a, b)):
+    matrix = mk_transition_matrix(a, b)
+    dist = distance(a, b, matrix=matrix)
+    for action in list(transition(a, b, matrix=matrix)):
         sys.stdout.write(f'{restore}{clean_down}')
         if isinstance(action, Insert):
             print(f"{a[:action.at]} {a[action.at:]}\n\u001b[{action.at+1}G^ {green}insert{default} {action.new}")
