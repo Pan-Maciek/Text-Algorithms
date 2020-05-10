@@ -23,4 +23,4 @@ def longest(a, b):
     return out
 
 def lcs1(a, b):
-    return (len(a) - len(b) - distance(a, b, delta2)) / 2
+    return (len(a) + len(b) - int(distance(a, b, delta2))) // 2
