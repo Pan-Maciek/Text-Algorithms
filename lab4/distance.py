@@ -65,6 +65,11 @@ class Substitute:
     def undo(self, str):
         return str[:self.at] + self.old + str[self.at+1:]
 
+@dataclass
+class Skip:
+    at: int
+    apply = undo = lambda self, x: x
+
 def mk_transition_matrix(a, b, dt=delta):
     x, y = len(a) + 1, len(b) + 1
 
@@ -80,13 +85,13 @@ def mk_transition_matrix(a, b, dt=delta):
 
     return m
 
-def transition(a, b, dt=delta, matrix=None):
+def transition(a, b, dt=delta, matrix=None, skip=False):
     m = matrix if matrix is not None else mk_transition_matrix(a, b, dt)
     x, y = len(a), len(b)
 
     while (x, y) != (0, 0):
         x, y, transition = min(
-            (x-1, y-1, None if a[x-1] == b[y-1] else Substitute(x-1, b[y-1], a[x-1])),
+            (x-1, y-1, (None if skip else Skip(x-1)) if a[x-1] == b[y-1] else Substitute(x-1, b[y-1], a[x-1])),
             (x-1, y, Delete(x-1, a[x-1])),
             (x, y-1, Insert(x, b[y-1])),
             key=lambda x: m[x[0], x[1]]
