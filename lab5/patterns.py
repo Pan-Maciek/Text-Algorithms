@@ -36,7 +36,7 @@ class Node:
             if c not in root.children: 
                 return root, text[i:]
             root = root.children[c]
-        return root, None
+        return root, ""
 
 class NDFA:
     def __init__(self, patterns):
@@ -51,7 +51,7 @@ class NDFA:
             for line in pattern:
                 alphabet = alphabet.union(line)
                 node, rest = self._root.find(line)
-                if rest: 
+                if len(rest) > 0: 
                     node = node.graft(rest, id_gen)
                 accepting.append(node.id)
                 max_width = max(max_width, len(line))
@@ -95,20 +95,19 @@ def editor_coords(row, col, patterns_dim):
     width, height = patterns_dim
     return Range(Point(row + 2 - height, col + 2 - width), Point(row + 1, col + 1))
 
-def text_coords(row, col, patterns_dim):
+def raw_coords(row, col, patterns_dim):
     width, height = patterns_dim
     return Range(Point(row + 1 - height, col + 1 - width), Point(row, col))
 
 def match(patterns, coords=editor_coords):
     line_fa = NDFA(patterns)
     dims = line_fa.patterns_dim
+    fa = NDFA([line_fa.accepting])
+    acc = fa.accepting[0]
 
-    def find(text):
-        lines = [line_fa.map(line) for line in text.splitlines()]
+    def find(lines):
+        lines = [line_fa.map(line) for line in lines]
         max_len = max(line.size for line in lines)
-
-        fa = NDFA([line_fa.accepting])
-        acc = fa.accepting[0]
 
         root = fa._root
         for col in range(max_len):
@@ -120,5 +119,6 @@ def match(patterns, coords=editor_coords):
                 if c in node.children:
                     node = node.children[c]
                 if node.id in acc:
-                    yield coords(row, col, dims[acc.index(node.id)])
+                    idx = acc.index(node.id)
+                    yield coords(row, col, dims[idx]), idx
     return find
